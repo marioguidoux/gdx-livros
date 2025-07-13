@@ -1,5 +1,6 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { createClient } from '@supabase/supabase-js';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,9 +11,10 @@ import InfiniteScroll from 'react-infinite-scroll-component';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
-const FILTERS_URL = 'https://script.google.com/macros/s/AKfycbxHHZI1KQeoh1Im-s71F6QBIkYRudKPYq14qJ2lD2xtAoTNBC5MUkPK2VO-b2iPry4w/exec';
+const FILTERS_URL =
+  'https://script.google.com/macros/s/AKfycbxHHZI1KQeoh1Im-s71F6QBIkYRudKPYq14qJ2lD2xtAoTNBC5MUkPK2VO-b2iPry4w/exec';
 
-type Book = {
+interface Book {
   id: string;
   imagem: string;
   titulo: string;
@@ -27,7 +29,7 @@ type Book = {
   link1: string;
   link2: string;
   link3: string;
-};
+}
 
 export default function BooksGallery() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -43,7 +45,7 @@ export default function BooksGallery() {
   const [categories, setCategories] = useState<SelectOption[]>([]);
   const pageSize = 20;
 
-  // Load filters
+  // Carrega listas de cidades e categorias
   useEffect(() => {
     fetch(FILTERS_URL)
       .then(res => res.json())
@@ -54,27 +56,18 @@ export default function BooksGallery() {
       .catch(err => console.error('Erro ao carregar filtros:', err));
   }, []);
 
-  // Load books on filter change
-  useEffect(() => {
-    setBooks([]);
-    setPage(1);
-    setHasMore(true);
-    if (searchTerm) {
-      fetchSearchResults();
-    } else {
-      loadBooks(1);
-    }
-  }, [searchTerm, filterCategory, filterCity, filterCentury]);
-
-  const fetchSearchResults = async () => {
+  // Busca completa
+  const fetchSearchResults = useCallback(async () => {
     let query = supabase
       .from('livros')
       .select('*')
       .order('titulo', { ascending: true })
       .range(0, 9999)
-      .or(`titulo.ilike.%${searchTerm}%,autor.ilike.%${searchTerm}%,editora.ilike.%${searchTerm}%`);
+      .or(
+        `titulo.ilike.%${searchTerm}%,autor.ilike.%${searchTerm}%,editora.ilike.%${searchTerm}%`
+      );
     if (filterCategory) query = query.eq('categoria', filterCategory);
-    if (filterCity) query = query.eq('cidade', filterCity);
+    if (filterCity)     query = query.eq('cidade',    filterCity);
     if (filterCentury) {
       const c = parseInt(filterCentury, 10);
       query = query.gte('ano', `${(c - 1) * 100 + 1}`).lte('ano', `${c * 100}`);
@@ -83,16 +76,17 @@ export default function BooksGallery() {
     if (error) console.error('Erro na busca:', error.message);
     setBooks(data || []);
     setHasMore(false);
-  };
+  }, [searchTerm, filterCategory, filterCity, filterCentury]);
 
-  const loadBooks = async (pageNumber: number) => {
+  // Paginação
+  const loadBooks = useCallback(async (pageNumber: number) => {
     let query = supabase
       .from('livros')
       .select('*')
       .order('titulo', { ascending: true })
       .range((pageNumber - 1) * pageSize, pageNumber * pageSize - 1);
     if (filterCategory) query = query.eq('categoria', filterCategory);
-    if (filterCity) query = query.eq('cidade', filterCity);
+    if (filterCity)     query = query.eq('cidade',    filterCity);
     if (filterCentury) {
       const c = parseInt(filterCentury, 10);
       query = query.gte('ano', `${(c - 1) * 100 + 1}`).lte('ano', `${c * 100}`);
@@ -104,8 +98,19 @@ export default function BooksGallery() {
       if (data.length < pageSize) setHasMore(false);
       setPage(prev => prev + 1);
     }
-  };
+  }, [filterCategory, filterCity, filterCentury]);
 
+  // Atualiza ao mudar filtros
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    setBooks([]);
+    setPage(1);
+    setHasMore(true);
+    if (searchTerm) fetchSearchResults();
+    else loadBooks(1);
+  }, [searchTerm, filterCategory, filterCity, filterCentury]);
+
+  // Séculos para filtro
   const centuries: SelectOption[] = [
     { value: '', label: 'Século' },
     { value: '15', label: 'Século XV' },
@@ -124,36 +129,60 @@ export default function BooksGallery() {
 
   return (
     <div className="p-4">
-      <form onSubmit={handleSearchSubmit} className="sticky top-0 bg-white z-10 p-4 flex flex-col sm:flex-row gap-4 mb-6">
+      <form
+        onSubmit={handleSearchSubmit}
+        className="sticky top-0 bg-white z-10 p-4 flex flex-col sm:flex-row gap-4 mb-6"
+      >
         <Input
           placeholder="Buscar por título, autor ou editora"
           value={searchInput}
           onChange={e => setSearchInput(e.target.value)}
           className="min-w-[280px]"
         />
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 transition">
+        <button
+          type="submit"
+          className="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700"
+        >
           Buscar
         </button>
-        <Select options={categories} value={filterCategory} onChange={e => setFilterCategory(e.target.value)} />
-        <Select options={cities}     value={filterCity}     onChange={e => setFilterCity(e.target.value)}     />
-        <Select options={centuries}  value={filterCentury} onChange={e => setFilterCentury(e.target.value)}  />
+        <Select
+          options={categories}
+          value={filterCategory}
+          onChange={e => setFilterCategory(e.target.value)}
+        />
+        <Select
+          options={cities}
+          value={filterCity}
+          onChange={e => setFilterCity(e.target.value)}
+        />
+        <Select
+          options={centuries}
+          value={filterCentury}
+          onChange={e => setFilterCentury(e.target.value)}
+        />
       </form>
 
-      <InfiniteScroll dataLength={books.length} next={() => loadBooks(page)} hasMore={hasMore} loader={<p>Carregando...</p>}>
+      <InfiniteScroll
+        dataLength={books.length}
+        next={() => loadBooks(page)}
+        hasMore={hasMore}
+        loader={<p>Carregando...</p>}
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {books.map((book, idx) => (
-            <Card key={`${book.id}-${idx}`} className="cursor-pointer" onClick={() => setSelectedBook(book)}>
+            <Card
+              key={`${book.id}-${idx}`}
+              className="cursor-pointer"
+              onClick={() => setSelectedBook(book)}
+            >
               <CardHeader>
                 {book.imagem ? (
-                  <img
+                  <Image
                     src={book.imagem}
                     alt={book.titulo}
-                    className="w-full h-48 object-contain"
-                    loading="lazy"
-                    onError={e => {
-                      const img = e.currentTarget as HTMLImageElement;
-                      setTimeout(() => { img.src = book.imagem; }, 1000);
-                    }}
+                    width={300}
+                    height={200}
+                    className="object-contain"
                   />
                 ) : (
                   <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-500">
@@ -175,15 +204,12 @@ export default function BooksGallery() {
         <ModalBody>
           <div className="w-full max-h-[60vh] overflow-auto mb-4">
             {selectedBook?.imagem && (
-              <img
-                src={selectedBook.imagem}
+              <Image
+                src={selectedBook.imagem!}
                 alt={selectedBook.titulo}
-                className="w-full h-auto object-contain"
-                loading="lazy"
-                onError={e => {
-                  const img = e.currentTarget as HTMLImageElement;
-                  setTimeout(() => { img.src = selectedBook.imagem!; }, 1000);
-                }}
+                width={400}
+                height={300}
+                className="object-contain"
               />
             )}
           </div>
@@ -203,7 +229,10 @@ export default function BooksGallery() {
           </div>
         </ModalBody>
         <ModalFooter>
-          <button className="px-4 py-2 rounded bg-gray-200" onClick={() => setSelectedBook(null)}>
+          <button
+            className="px-4 py-2 rounded bg-gray-200"
+            onClick={() => setSelectedBook(null)}
+          >
             Fechar
           </button>
         </ModalFooter>

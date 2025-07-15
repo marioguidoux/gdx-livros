@@ -2,10 +2,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { createClient } from '@supabase/supabase-js';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Select, SelectOption } from '@/components/ui/select';
-import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/modal';
+import { Card, CardHeader, CardContent } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Select, SelectOption } from '../components/ui/select';
+import { Modal, ModalHeader, ModalBody, ModalFooter } from '../components/ui/modal';
 import InfiniteScroll from 'react-infinite-scroll-component';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;

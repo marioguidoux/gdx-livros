@@ -3,7 +3,7 @@ import React from 'react';
 
 export const metadata = {
   title: 'GDX Livros',
-  description: 'Galeria de livros do Supabase',
+  description: 'Galeria de livros',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

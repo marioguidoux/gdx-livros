@@ -45,7 +45,6 @@ export default function BooksGallery() {
   const [categories, setCategories] = useState<SelectOption[]>([]);
   const pageSize = 20;
 
-  // Carrega listas de cidades e categorias
   useEffect(() => {
     fetch(FILTERS_URL)
       .then(res => res.json())
@@ -56,7 +55,6 @@ export default function BooksGallery() {
       .catch(err => console.error('Erro ao carregar filtros:', err));
   }, []);
 
-  // Busca completa
   const fetchSearchResults = useCallback(async () => {
     let query = supabase
       .from('livros')
@@ -78,7 +76,6 @@ export default function BooksGallery() {
     setHasMore(false);
   }, [searchTerm, filterCategory, filterCity, filterCentury]);
 
-  // Paginação
   const loadBooks = useCallback(async (pageNumber: number) => {
     let query = supabase
       .from('livros')
@@ -100,7 +97,6 @@ export default function BooksGallery() {
     }
   }, [filterCategory, filterCity, filterCentury]);
 
-  // Atualiza ao mudar filtros
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     setBooks([]);
@@ -110,7 +106,6 @@ export default function BooksGallery() {
     else loadBooks(1);
   }, [searchTerm, filterCategory, filterCity, filterCentury]);
 
-  // Séculos para filtro
   const centuries: SelectOption[] = [
     { value: '', label: 'Século' },
     { value: '15', label: 'Século XV' },
@@ -145,36 +140,15 @@ export default function BooksGallery() {
         >
           Buscar
         </button>
-        <Select
-          options={categories}
-          value={filterCategory}
-          onChange={e => setFilterCategory(e.target.value)}
-        />
-        <Select
-          options={cities}
-          value={filterCity}
-          onChange={e => setFilterCity(e.target.value)}
-        />
-        <Select
-          options={centuries}
-          value={filterCentury}
-          onChange={e => setFilterCentury(e.target.value)}
-        />
+        <Select options={categories} value={filterCategory} onChange={e => setFilterCategory(e.target.value)} />
+        <Select options={cities}     value={filterCity}     onChange={e => setFilterCity(e.target.value)}     />
+        <Select options={centuries}  value={filterCentury} onChange={e => setFilterCentury(e.target.value)}  />
       </form>
 
-      <InfiniteScroll
-        dataLength={books.length}
-        next={() => loadBooks(page)}
-        hasMore={hasMore}
-        loader={<p>Carregando...</p>}
-      >
+      <InfiniteScroll dataLength={books.length} next={() => loadBooks(page)} hasMore={hasMore} loader={<p>Carregando...</p>}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {books.map((book, idx) => (
-            <Card
-              key={`${book.id}-${idx}`}
-              className="cursor-pointer"
-              onClick={() => setSelectedBook(book)}
-            >
+            <Card key={`${book.id}-${idx}`} className="cursor-pointer" onClick={() => setSelectedBook(book)}>
               <CardHeader>
                 {book.imagem ? (
                   <Image
